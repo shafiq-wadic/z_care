@@ -81,8 +81,7 @@ export default function AddPatientPage() {
 
             router.push('/patients')
         } catch (err) {
-            console.error('❌ Submission error:', err)
-            setServerError(err?.message)
+            console.error('❌ Submission error:', err);
         } finally {
             setLoading(false)
         }

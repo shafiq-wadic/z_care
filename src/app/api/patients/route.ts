@@ -25,19 +25,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(newPatient, { status: 201 })
     } catch (error) {
-        console.error('[POST ERROR]', error)
-
-        // Handle Prisma unique constraint (e.g. duplicate email)
-        if (
-            error?.code === 'P2002' &&
-            error?.meta?.target?.includes('email')
-        ) {
-            return NextResponse.json(
-                { error: 'Email already exists. Use a different one.' },
-                { status: 409 } // Conflict
-            )
-        }
-
+        console.error('[POST ERROR]', error);
         return NextResponse.json(
             { error: 'Something went wrong. Please try again.' },
             { status: 500 }
