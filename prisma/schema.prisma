@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Patient {
+  id           Int     @id @default(autoincrement())
+  name         String
+  age          Int
+  gender       String
+  email        String  @unique
+  phone        String?
+  diabetesType String?
+  height       Float?
+  weight       Float?
+
+  // Relationships
+  dietPlan   DietPlan? @relation(fields: [dietPlanId], references: [id])
+  dietPlanId Int?
+
+  prescriptions Prescription[]
+  payslips      Payslip[]
+  reminders     Reminder[]
+  messages      WhatsAppMessage[]
+
+  // Children/Parent relationship (self-reference)
+  children Patient[] @relation("ParentChildren")
+  parent   Patient?  @relation("ParentChildren", fields: [parentId], references: [id])
+  parentId Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DietPlan {
+  id          Int     @id @default(autoincrement())
+  title       String
+  description String?
+  calories    Int?
+  protein     Float?
+  carbs       Float?
+  fat         Float?
+
+  patients Patient[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payslip {
+  id        Int      @id @default(autoincrement())
+  patient   Patient  @relation(fields: [patientId], references: [id])
+  patientId Int
+  amount    Float
+  note      String?
+  issuedAt  DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Prescription {
+  id        Int     @id @default(autoincrement())
+  patient   Patient @relation(fields: [patientId], references: [id])
+  patientId Int
+  summary   String
+  pdfUrl    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Reminder {
+  id          Int      @id @default(autoincrement())
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  patientId   Int
+  type        String
+  message     String
+  scheduledAt DateTime
+  sent        Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WhatsAppMessage {
+  id        Int       @id @default(autoincrement())
+  patient   Patient   @relation(fields: [patientId], references: [id])
+  patientId Int
+  content   String
+  status    String // "sent" / "failed" etc.
+  sentAt    DateTime?
+
+  createdAt DateTime @default(now())
+}
