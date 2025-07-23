@@ -10,7 +10,6 @@ type PatientForm = {
     email: string
     phone: string
     diabetesType: string
-    dietPlan: string
 }
 
 export default function EditPatientPage() {
@@ -24,18 +23,19 @@ export default function EditPatientPage() {
         email: '',
         phone: '',
         diabetesType: '',
-        dietPlan: '',
     })
 
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
+    const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-    // Load patient data
     useEffect(() => {
         const fetchPatient = async () => {
             try {
                 const res = await fetch(`/api/patients/${id}`)
+                if (!res.ok) throw new Error('Failed to load patient')
                 const data = await res.json()
+
                 setFormData({
                     name: data.name || '',
                     age: data.age || '',
@@ -43,11 +43,9 @@ export default function EditPatientPage() {
                     email: data.email || '',
                     phone: data.phone || '',
                     diabetesType: data.diabetesType || '',
-                    dietPlan: data.dietPlan || '',
                 })
             } catch (err) {
-                console.error('Failed to fetch patient data:', err)
-                alert('❌ Could not load patient info.')
+                setErrorMsg('Could not load patient info.')
             } finally {
                 setLoading(false)
             }
@@ -57,7 +55,7 @@ export default function EditPatientPage() {
     }, [id])
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
         const { name, value } = e.target
         setFormData((prev) => ({
@@ -69,6 +67,13 @@ export default function EditPatientPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setSubmitting(true)
+        setErrorMsg(null)
+
+        if (!formData.name || !formData.age || !formData.gender) {
+            setErrorMsg('Name, age, and gender are required!')
+            setSubmitting(false)
+            return
+        }
 
         try {
             const res = await fetch(`/api/patients/${id}`, {
@@ -77,12 +82,18 @@ export default function EditPatientPage() {
                 body: JSON.stringify(formData),
             })
 
-            if (!res.ok) throw new Error('Update failed')
+            if (!res.ok) {
+                const errData = await res.json()
+                throw new Error(errData.message || 'Update failed')
+            }
 
             router.push('/patients')
         } catch (err) {
-            console.error('❌ Error updating patient:', err)
-            alert('Something went wrong. Try again.')
+            if (err instanceof Error) {
+                setErrorMsg(err.message)
+            } else {
+                setErrorMsg('Something went wrong. Try again.')
+            }
         } finally {
             setSubmitting(false)
         }
@@ -93,6 +104,13 @@ export default function EditPatientPage() {
     return (
         <div className="max-w-3xl mx-auto px-6 py-10">
             <h1 className="text-3xl font-bold mb-8 text-center">✏️ Edit Patient Info</h1>
+
+            {errorMsg && (
+                <div className="bg-red-100 text-red-700 px-4 py-2 rounded-lg mb-4">
+                    {errorMsg}
+                </div>
+            )}
+
             <form
                 onSubmit={handleSubmit}
                 className="bg-white shadow-lg rounded-2xl p-8 space-y-5"
@@ -154,14 +172,6 @@ export default function EditPatientPage() {
                     <option value="Type 2">Type 2</option>
                     <option value="Gestational">Gestational</option>
                 </select>
-                <textarea
-                    name="dietPlan"
-                    value={formData.dietPlan}
-                    onChange={handleChange}
-                    placeholder="Diet Plan or Special Notes"
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={4}
-                />
 
                 <button
                     type="submit"

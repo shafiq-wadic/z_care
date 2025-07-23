@@ -8,26 +8,19 @@ datasource db {
 }
 
 model Patient {
-  id           Int     @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   name         String
   age          Int
   gender       String
-  email        String  @unique
+  email        String    @unique
   phone        String?
   diabetesType String?
   height       Float?
   weight       Float?
 
-  // Relationships
-  dietPlan   DietPlan? @relation(fields: [dietPlanId], references: [id])
-  dietPlanId Int?
+  dietPlans    DietPlan[]
 
-  prescriptions Prescription[]
-  payslips      Payslip[]
-  reminders     Reminder[]
-  messages      WhatsAppMessage[]
-
-  // Children/Parent relationship (self-reference)
+  // Self-referencing relation
   children Patient[] @relation("ParentChildren")
   parent   Patient?  @relation("ParentChildren", fields: [parentId], references: [id])
   parentId Int?
@@ -37,63 +30,88 @@ model Patient {
 }
 
 model DietPlan {
-  id          Int     @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   title       String
   description String?
+  startDate   DateTime
+  endDate     DateTime?
+
+  patientId   Int
+  patient     Patient    @relation(fields: [patientId], references: [id])
+
+  days        DietDay[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model DietDay {
+  id          Int        @id @default(autoincrement())
+  dayNumber   Int
+  dietPlanId  Int
+  dietPlan    DietPlan   @relation(fields: [dietPlanId], references: [id])
+
+  meals       Meal[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Meal {
+  id          Int        @id @default(autoincrement())
+
+  mealTypeId  Int
+  mealType    MealType   @relation(fields: [mealTypeId], references: [id])
+
+  time        String     // e.g., "08:00"
+
+  dietDayId   Int
+  dietDay     DietDay    @relation(fields: [dietDayId], references: [id])
+
+  items       MealItemOnMeal[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model MealType {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique // Breakfast, Lunch, etc.
+  time        String     // e.g., "08:00"
+
+  meals       Meal[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model MealItem {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique // "Boiled Egg", "Avocado Slice"
+  quantity    String
   calories    Int?
   protein     Float?
   carbs       Float?
   fat         Float?
 
-  patients Patient[]
+  meals       MealItemOnMeal[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
-model Payslip {
-  id        Int      @id @default(autoincrement())
-  patient   Patient  @relation(fields: [patientId], references: [id])
-  patientId Int
-  amount    Float
-  note      String?
-  issuedAt  DateTime @default(now())
+model MealItemOnMeal {
+  id               Int       @id @default(autoincrement())
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+  mealId           Int
+  meal             Meal      @relation(fields: [mealId], references: [id])
 
-model Prescription {
-  id        Int     @id @default(autoincrement())
-  patient   Patient @relation(fields: [patientId], references: [id])
-  patientId Int
-  summary   String
-  pdfUrl    String?
+  itemId           Int
+  item             MealItem  @relation(fields: [itemId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+  overrideQuantity String?
+  overrideCalories Int?
 
-model Reminder {
-  id          Int      @id @default(autoincrement())
-  patient     Patient  @relation(fields: [patientId], references: [id])
-  patientId   Int
-  type        String
-  message     String
-  scheduledAt DateTime
-  sent        Boolean  @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model WhatsAppMessage {
-  id        Int       @id @default(autoincrement())
-  patient   Patient   @relation(fields: [patientId], references: [id])
-  patientId Int
-  content   String
-  status    String // "sent" / "failed" etc.
-  sentAt    DateTime?
-
-  createdAt DateTime @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
